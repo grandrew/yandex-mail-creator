@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
 
-class Yandex(WebDriver):
+class Rambler(WebDriver):
 
     def __init__(self, account=None, api_key=None):
         opts = Options()
@@ -22,85 +22,123 @@ class Yandex(WebDriver):
         opts.add_argument(
             '--proxy-server="socks5://localhost:9050"')
         WebDriver.__init__(self, opts)
-        self.registerPage = 'https://mail.yandex.com/'
-        # self.registerPage = 'https://myip.ru/'
+        self.registerPage = 'https://mail.rambler.ru/?utm_source=head&utm_campaign=self_promo&utm_medium=header&utm_content=mail' 
         self.apiKey = api_key
         self.account = account
         self.id = None
         self.interface = "full"
 
+
+    def solve_captcha(self):
+        self.driver.switch_to_default_content()
+        # self.driver.switch_to_frame("0.0")
+        gkey = self.driver.execute_script('return (new URLSearchParams(document.getElementsByTagName("iframe")[0].src)).get("k")')
+        # gkey = self.driver.find_element_by_id("recaptcha").get_attribute("data-sitekey")
+        print("RECAPTCHA:", gkey)
+        r = requests.get('http://2captcha.com/in.php?key=206318f3ef77f0118eae3c1628f3c1aa&method=userrecaptcha&googlekey=%s&pageurl=https://burghquayregistrationoffice.inis.gov.ie/Website/AMSREG/AMSRegWeb.nsf/AppSelect?OpenForm' % gkey)
+        res = r.text
+        print("2cpt", res)
+        try:
+            rk = res.split("|")[1]
+        except:
+            rk = "12345"
+        print("rk", rk)
+        time.sleep(5)
+        capRes = "CAPCHA_NOT_READY"
+        i = 0
+        while capRes == "CAPCHA_NOT_READY":
+            print(capRes)
+            r = requests.get("http://2captcha.com/res.php?key=206318f3ef77f0118eae3c1628f3c1aa&action=get&id=%s" % rk)
+            capRes = r.text
+            if capRes == "ERROR_WRONG_CAPTCHA_ID": raise BaseException("ERROR_WRONG_CAPTCHA_ID")
+            time.sleep(2)
+            i+=1
+            if i > 60:
+                raise BaseException("Captcha timeout")
+        capRes = capRes.split("|")[1]
+        print(capRes)
+        self.driver.execute_script('document.getElementById("g-recaptcha-response").innerHTML="%s";' % capRes)
+
     def create_account(self):
         # self.driver.set_window_size(1024, 768)
-        self.driver.get(self.registerPage)
-        time.sleep(2)
 
-        # actions = ActionChains(self)
-        # actions.moveByOffset(382, 482).click().build().perform()
-        ok = False
-        for i in range(200):
-            try:
-                self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
-                ok = True
-                break
-            except:
-                time.sleep(0.05)
-                # self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
-        if not ok:
-            self.driver.quit()
-            raise Exception("Could not continue")
-        time.sleep(1)
         try:
-            # for i in range(500):
-            #     try:
-            #         self.get_element(By.CSS_SELECTOR, "#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow").click()
-            #         break
-            #     except:
-            #         pass
-            # self.wait_until_page_loaded()
-            # try:
-                # self.get_element(By.CSS_SELECTOR, "#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow").click()
-            # except:
-                # pass
-            # time.sleep(200)
-            # for i in range(100):
-                # try:
-                    # self.get_element(By.CSS_SELECTOR, "#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow").click()
-                # except:
-                    # self.get_element(By.CSS_SELECTOR, "#index-page-container > div > div.HeadBanner.with-him > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow").click()
-                    # print("ERRRRRRR")
-                    # time.sleep(1)
+            self.driver.get(self.registerPage)
             self.wait_until_page_loaded()
-
-            self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
             time.sleep(2)
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            time.sleep(2)
+            # self.driver.switch_to_frame("login")
+            self.driver.switch_to_frame("0")
+            # Click register
+            self.get_element(By.CSS_SELECTOR, '.footer-0-3-53 > a:nth-child(1)').click()
+            self.wait_until_ajax_response()
+            login_element = self.get_element(By.CSS_SELECTOR, '#login')
+            self.send_slow_key(login_element, self.account.mail)
+            # password
 
-            first_name_element = self.get_element(By.ID, 'firstname')
-            last_name_element = self.get_element(By.ID, 'lastname')
-            login_element = self.get_element(By.ID, 'login')
+            password_element = self.get_element(By.CSS_SELECTOR, '#newPassword')
+            self.send_slow_key(password_element, self.account.password)
+
+            password_confirm_element = self.get_element(By.CSS_SELECTOR, '#confirmPassword')
+            self.send_slow_key(password_confirm_element, self.account.password)
+
+            # question
+
+            self.get_element(By.CSS_SELECTOR, '#question').click()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(1)').click()
+
+            # type in answer
+
+            index = "107234"
+            answer_elem = self.get_element(By.CSS_SELECTOR, '#answer')
+            self.send_slow_key(answer_elem, index)
+
+            self.solve_captcha()
+
+            # TODO: run callback to enable button!
+
+            # Now click "next"
+            self.get_element(By.CSS_SELECTOR, '.rui-Button-button').click()
+
+
+
+            first_name_element = self.get_element(By.CSS_SELECTOR, '#firstname')
+            last_name_element = self.get_element(By.CSS_SELECTOR, '#lastname')
 
             self.send_slow_key(first_name_element, self.account.firstName)
-
             self.send_slow_key(last_name_element, self.account.lastName)
 
-            self.send_slow_key(login_element, self.account.mail)
 
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            try:
-                self.driver.execute_script("return document.querySelector('.link_has-no-phone').click();");
-            except:
-                pass
+            # Gender
+            self.get_element(By.CSS_SELECTOR, '#gender').click()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(1)').click()
+
+            # birthday
+            self.get_element(By.CSS_SELECTOR, '#birthday').click()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(2)').click()
+
+            # month
+            self.get_element(By.CSS_SELECTOR, 'div.rui-Select-root:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > input:nth-child(1)').click()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(3)').click()
+
+            # yesr
+            self.get_element(By.CSS_SELECTOR, 'div.rui-Select-root:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > input:nth-child(1)').click()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(22)').click()
+
+            # City
+            city = self.get_element(By.CSS_SELECTOR, '#geoid')
+            self.send_slow_key(city, "Moscow")
+            time.sleep(2)
+            self.wait_until_ajax_response()
+            self.get_element(By.CSS_SELECTOR, 'div.rui-MenuItem-root:nth-child(3)').click()
+
+
+
+
+
+
+
+
+
             self.wait_until_ajax_response()
             time.sleep(1)
 
@@ -116,13 +154,6 @@ class Yandex(WebDriver):
                 mail_retry_count += 1
                 if mail_retry_count == 3:
                     self.driver.quit()
-
-            password_element = self.get_element(By.ID, 'password')
-            self.send_slow_key(password_element, self.account.password)
-
-            password_confirm_element = self.get_element(By.ID, 'password_confirm')
-            self.send_slow_key(password_confirm_element, self.account.password)
-
             try:
                 self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
             except:

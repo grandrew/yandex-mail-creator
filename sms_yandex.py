@@ -7,12 +7,17 @@ from selenium.webdriver.common.by import By
 import time
 import base64
 import requests
-from webdriver import WebDriver
+# from webdriver import TorDriver, TorDriver2, WebDriver
+from webdriver import TorDriver2 as WebDriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
+from smsactivateru import Sms, SmsTypes, SmsService, GetBalance, GetFreeSlots, GetNumber 
 
-class Yandex(WebDriver):
+import threading
+import functools
+
+class SmsYandex(WebDriver):
 
     def __init__(self, account=None, api_key=None):
         opts = Options()
@@ -22,7 +27,7 @@ class Yandex(WebDriver):
         opts.add_argument(
             '--proxy-server="socks5://localhost:9050"')
         WebDriver.__init__(self, opts)
-        self.registerPage = 'https://mail.yandex.com/'
+        self.registerPage = 'http://mail.yandex.com/'
         # self.registerPage = 'https://myip.ru/'
         self.apiKey = api_key
         self.account = account
@@ -31,25 +36,27 @@ class Yandex(WebDriver):
 
     def create_account(self):
         # self.driver.set_window_size(1024, 768)
-        self.driver.get(self.registerPage)
-        time.sleep(2)
-
-        # actions = ActionChains(self)
-        # actions.moveByOffset(382, 482).click().build().perform()
         ok = False
-        for i in range(200):
-            try:
-                self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
-                ok = True
-                break
-            except:
-                time.sleep(0.05)
-                # self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
+        while not ok:
+            self.driver.get(self.registerPage)
+            # time.sleep(2)
+
+            # actions = ActionChains(self.driver)
+            # actions.moveByOffset(382, 482).click().build().perform()
+            for i in range(100):
+                try:
+                    self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
+                    ok = True
+                    break
+                except:
+                    time.sleep(0.05)
+                    # self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
         if not ok:
             self.driver.quit()
             raise Exception("Could not continue")
         time.sleep(1)
-        try:
+        if 1:
+        # try:
             # for i in range(500):
             #     try:
             #         self.get_element(By.CSS_SELECTOR, "#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow").click()
@@ -70,18 +77,9 @@ class Yandex(WebDriver):
                     # print("ERRRRRRR")
                     # time.sleep(1)
             self.wait_until_page_loaded()
+            time.sleep(2)
 
-            self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            time.sleep(2)
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            time.sleep(2)
+            self.wait_element(By.CSS_SELECTOR, '#firstname')
 
             first_name_element = self.get_element(By.ID, 'firstname')
             last_name_element = self.get_element(By.ID, 'lastname')
@@ -90,19 +88,11 @@ class Yandex(WebDriver):
             self.send_slow_key(first_name_element, self.account.firstName)
 
             self.send_slow_key(last_name_element, self.account.lastName)
-
-            self.send_slow_key(login_element, self.account.mail)
-
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
-            try:
-                self.driver.execute_script("return document.querySelector('.link_has-no-phone').click();");
-            except:
-                pass
             self.wait_until_ajax_response()
-            time.sleep(1)
+
+            self.account.mail += ''.join([str(random.randint(0,9)), str(random.randint(0,9))])
+            self.send_slow_key(login_element, self.account.mail)
+            self.wait_until_ajax_response()
 
             mail_retry_count = 0
             parent = self.get_parent_node(By.ID, 'login', 2)
@@ -119,32 +109,30 @@ class Yandex(WebDriver):
 
             password_element = self.get_element(By.ID, 'password')
             self.send_slow_key(password_element, self.account.password)
+            self.wait_until_ajax_response()
 
             password_confirm_element = self.get_element(By.ID, 'password_confirm')
             self.send_slow_key(password_confirm_element, self.account.password)
-
-            try:
-                self.get_element(By.CSS_SELECTOR, '.link_has-no-phone').click()
-            except:
-                pass
             self.wait_until_ajax_response()
-            time.sleep(1)
 
             self.registered_stats = ('Email adresi {}@yandex.com ve sifre {} olarak belirlendi'.format(
                 self.driver.find_element_by_id('login').get_attribute('value'), self.account.password))
 
-            hint_answer = self.get_element(By.ID, 'hint_answer')
-            if hint_answer.get_attribute('value').strip() == '':
-                self.send_slow_key(hint_answer, self.account.firstName + ' ' + self.account.lastName)
-
             # time.sleep(1000)
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight)")
+
+            # wait for javascript
+            # TODO: confirm number .Button2_view_pseudo  .Button2_view_pseudo
+            # wait for javascript
+            # button.Button2:nth-child(1)
+
+
             self.fill_other_fields()
 
-        finally:
-            print(self.registered_stats)
-            # self.driver.quit()
-            pass
+        # finally:
+        #     print(self.registered_stats)
+        #     # self.driver.quit()
+        #     pass
 
     def decode_capthca(self):
         captcha_element = self.get_element(By.CSS_SELECTOR, '.captcha__image')
@@ -181,8 +169,67 @@ class Yandex(WebDriver):
         captcha_element.clear()
         self.send_slow_key(captcha_element, text)
 
+    def confirm_sms(self):
+        phone_num_element = self.get_element(By.ID, 'phone')
+        wrapper = Sms(open("smsreg.apikey").read())
+        # getting balance
+        balance = GetBalance().request(wrapper)
+        # show balance
+        print('На счету {} руб.'.format(balance))
+        # getting free slots (count available phone numbers for each services)
+        available_phones = GetFreeSlots(
+            country=SmsTypes.Country.CA,
+            # operator=SmsTypes.Operator.TELE2
+        ).request(wrapper)
+        # show for vk.com, whatsapp and youla.io)
+        # print('vk.com: {} номеров'.format(available_phones.VkCom.count))
+        # print('whatsapp: {} номеров'.format(available_phones.Whatsapp.count))
+        # print('youla.io: {} номеров'.format(available_phones.Youla.count))
+        print('yandex: {} номеров'.format(available_phones.Yandex.count))
+        activation = GetNumber(
+            service=SmsService().Yandex,
+            country=SmsTypes.Country.CA,
+            # operator=SmsTypes.Operator.Beeline
+        ).request(wrapper)
+
+        # show activation id and phone for reception sms
+        print('id: {} phone: {}'.format(str(activation.id), str(activation.phone_number)))
+        self.send_slow_key(phone_num_element, "+"+activation.phone_number)
+        self.wait_until_ajax_response()
+        time.sleep(2)
+        try:
+            confirm_sms_button = self.get_element(By.CSS_SELECTOR, '.Button2_view_pseudo')  # phone confirm click
+            confirm_sms_button.click()
+        except:
+            pass
+        time.sleep(1)
+        try:
+            confirm_sms_button = self.get_element(By.CSS_SELECTOR, '.Button2_view_pseudo')  # phone confirm click
+            confirm_sms_button.click()
+        except:
+            pass
+        time.sleep(1)
+        try:
+            confirm_registration_element = self.get_element(By.CSS_SELECTOR, 'button[type="submit"]')
+            confirm_registration_element.click()
+        except:
+            pass
+
+        # GET CODE HERE
+
+        activation.was_sent()
+        # .request(wrapper)
+        code = activation.wait_code(wrapper=wrapper)
+
+        phone_code_element = self.get_element(By.ID, 'phoneCode')
+        self.send_slow_key(phone_code_element, code)
+        self.wait_until_ajax_response()
+
+
+
     def fill_other_fields(self):
-        self.decode_capthca()
+        # self.decode_capthca()
+        self.confirm_sms()
         self.wait_element(By.CSS_SELECTOR, 'button[type="submit"]')
         try:
             confirm_registration_element = self.get_element(By.CSS_SELECTOR, 'button[type="submit"]')
