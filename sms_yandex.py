@@ -8,7 +8,8 @@ import time
 import base64
 import requests
 # from webdriver import TorDriver, TorDriver2, WebDriver
-from webdriver import TorDriver2 as WebDriver
+# from webdriver import TorDriver2 as WebDriver
+from webdriver import TorDriver3 as WebDriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
@@ -51,9 +52,10 @@ class SmsYandex(WebDriver):
                 except:
                     time.sleep(0.05)
                     # self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
-        if not ok:
-            self.driver.quit()
-            raise Exception("Could not continue")
+            if not ok:
+                self.driver.quit()
+                time.sleep(2)
+                raise Exception("Could not continue")
         time.sleep(1)
         if 1:
         # try:
@@ -352,4 +354,7 @@ class SmsYandex(WebDriver):
         self.switch_to_light()
         el = self.driver.find_element_by_id('main')
         return el.text
+    
+    def __del__(self):
+        self.driver.quit()
         

@@ -2,9 +2,13 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from tbselenium.tbdriver import TorBrowserDriver
 import time
 import os
 import inspect
+
+import tbselenium.common as cm
+from tbselenium.utils import launch_tbb_tor_with_stem
 
 options = {
     'proxy': {
@@ -142,7 +146,9 @@ class TorDriver2(WebDriver):
         os.environ['TOR_SKIP_LAUNCH'] = '1'
         os.environ['TOR_TRANSPROXY'] = '1'
         tb_binary = os.path.join(tbb_dir, 'Browser/firefox')
-        tb_profile = os.path.join(tbb_dir, 'Browser/TorBrowser/Data/Browser/profile.default')
+        # tb_profile = os.path.join(tbb_dir, 'Browser/TorBrowser/Data/Browser/profile.default')
+        tb_profile = os.path.join("profile"+str(int(time.time())))
+        os.mkdir(tb_profile)
         binary = FirefoxBinary(os.path.join(tbb_dir, 'Browser/firefox'))
         profile = FirefoxProfile(tb_profile)
 
@@ -158,13 +164,35 @@ class TorDriver2(WebDriver):
 
         ipTor='127.0.0.1'
         SOCKSPort = 9050 #of file  tor_port
-        proxy=set_proxy(ipTor, SOCKSPort)
+        # proxy=set_proxy(ipTor, SOCKSPort)
         self.driver = webdriver.Firefox(
             executable_path=
                 os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/geckodriver',
-            firefox_profile=proxy,
-            # firefox_binary=binary,
+            firefox_profile=profile,
+            firefox_binary=binary,
             )
+        # self.driver.get('http://zqktlwi4fecvo6ri.onion/wiki/index.php/Main_Page')
+        self.driver.delete_all_cookies()
+        self.driver.set_page_load_timeout(30)
+        self.driver.set_script_timeout(30)
+
+class TorDriver3(WebDriver):
+    def __init__(self, opts):
+        tbb_dir = "/home/grandrew/Downloads/tor-browser_en-US/"
+        os.environ['TOR_SKIP_LAUNCH'] = '1'
+        os.environ['TOR_TRANSPROXY'] = '1'
+        tb_binary = os.path.join(tbb_dir, 'Browser/firefox')
+        # tb_profile = os.path.join(tbb_dir, 'Browser/TorBrowser/Data/Browser/profile.default')
+        tb_profile = os.path.join("profile"+str(int(time.time())))
+        os.mkdir(tb_profile)
+        binary = FirefoxBinary(os.path.join(tbb_dir, 'Browser/firefox'))
+
+        self.driver = TorBrowserDriver(tbb_dir,
+            executable_path=
+                os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/geckodriver',
+            tor_cfg=cm.USE_STEM
+        )
+        
         # self.driver.get('http://zqktlwi4fecvo6ri.onion/wiki/index.php/Main_Page')
         self.driver.delete_all_cookies()
         self.driver.set_page_load_timeout(30)
