@@ -1,4 +1,9 @@
 # from seleniumwire import webdriver
+
+import random
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -138,7 +143,24 @@ class TorDriver(WebDriver):
         self.driver.set_page_load_timeout(30)
         self.driver.set_script_timeout(30)
 
+def set_proxy(driver, http_addr='', http_port=0, ssl_addr='', ssl_port=0, socks_addr='', socks_port=0):
 
+    driver.execute("SET_CONTEXT", {"context": "chrome"})
+
+    try:
+        driver.execute_script("""
+          Services.prefs.setIntPref('network.proxy.type', 1);
+          Services.prefs.setBoolPref('network.proxy.socks_remote_dns', true);
+          Services.prefs.setCharPref("network.proxy.http", arguments[0]);
+          Services.prefs.setIntPref("network.proxy.http_port", arguments[1]);
+          Services.prefs.setCharPref("network.proxy.ssl", arguments[2]);
+          Services.prefs.setIntPref("network.proxy.ssl_port", arguments[3]);
+          Services.prefs.setCharPref('network.proxy.socks', arguments[4]);
+          Services.prefs.setIntPref('network.proxy.socks_port', arguments[5]);
+          """, http_addr, http_port, ssl_addr, ssl_port, socks_addr, socks_port)
+
+    finally:
+        driver.execute("SET_CONTEXT", {"context": "content"})
 
 class TorDriver2(WebDriver):
     def __init__(self, opts):
@@ -152,29 +174,39 @@ class TorDriver2(WebDriver):
         binary = FirefoxBinary(os.path.join(tbb_dir, 'Browser/firefox'))
         profile = FirefoxProfile(tb_profile)
 
-        def set_proxy(ip, port):
-            # profile = webdriver.FirefoxProfile()
-            profile.set_preference('network.proxy.type', 1)
-            profile.set_preference('network.proxy.socks', ip)
-            profile.set_preference('network.proxy.socks_port', port)
-            profile.set_preference('network.proxy.socks_version', 5)
-            profile.set_preference('network.proxy.socks_remote_dns', True)
-            profile.update_preferences()
-            return profile
+        ip='127.0.0.1'
+        port = 9050 #of file  tor_port
+        profile.set_preference('network.proxy.type', 1)
+        profile.set_preference('network.proxy.socks', ip)
+        profile.set_preference('network.proxy.socks_port', port)
+        profile.set_preference('network.proxy.socks_version', 5)
+        profile.set_preference('network.proxy.socks_remote_dns', True)
+        profile.update_preferences()
 
-        ipTor='127.0.0.1'
-        SOCKSPort = 9050 #of file  tor_port
-        # proxy=set_proxy(ipTor, SOCKSPort)
+        proxy = Proxy({
+            'proxyType': ProxyType.MANUAL,
+            "socksProxy": "127.0.0.1:9050"
+            })
+        profile.set_proxy(proxy)
+
+        geckopath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/geckodriver'
+
         self.driver = webdriver.Firefox(
-            executable_path=
-                os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))) + '/geckodriver',
+            executable_path=geckopath,
             firefox_profile=profile,
             firefox_binary=binary,
+            proxy=proxy
             )
+        
+        set_proxy(self.driver, socks_addr="127.0.0.1", socks_port=9050)
+        # self.driver.get("about:config");
+
+
         # self.driver.get('http://zqktlwi4fecvo6ri.onion/wiki/index.php/Main_Page')
         self.driver.delete_all_cookies()
         self.driver.set_page_load_timeout(30)
         self.driver.set_script_timeout(30)
+        self.driver.set_window_size(375+random.randint(5,150), 667+random.randint(5,150))
 
 class TorDriver3(WebDriver):
     def __init__(self, opts):

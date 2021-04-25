@@ -8,8 +8,8 @@ import time
 import base64
 import requests
 # from webdriver import TorDriver, TorDriver2, WebDriver
-# from webdriver import TorDriver2 as WebDriver
-from webdriver import TorDriver3 as WebDriver
+from webdriver import TorDriver2 as WebDriver
+# from webdriver import TorDriver3 as WebDriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 
@@ -40,7 +40,6 @@ class SmsYandex(WebDriver):
         ok = False
         while not ok:
             self.driver.get(self.registerPage)
-            # time.sleep(2)
 
             # actions = ActionChains(self.driver)
             # actions.moveByOffset(382, 482).click().build().perform()
@@ -52,10 +51,10 @@ class SmsYandex(WebDriver):
                 except:
                     time.sleep(0.05)
                     # self.driver.execute_script("return document.querySelector('#index-page-container > div > div.HeadBanner.with-her > div > div > div.HeadBanner-ButtonsWrapper > a.control.button2.button2_view_classic.button2_size_mail-big.button2_theme_mail-action.button2_type_link.HeadBanner-Button.with-shadow').click();");
-            if not ok:
-                self.driver.quit()
-                time.sleep(2)
-                raise Exception("Could not continue")
+        if not ok:
+            self.driver.quit()
+            time.sleep(2)
+            raise Exception("Could not continue")
         time.sleep(1)
         if 1:
         # try:
@@ -88,6 +87,7 @@ class SmsYandex(WebDriver):
             login_element = self.get_element(By.ID, 'login')
 
             self.send_slow_key(first_name_element, self.account.firstName)
+            self.wait_until_ajax_response()
 
             self.send_slow_key(last_name_element, self.account.lastName)
             self.wait_until_ajax_response()
@@ -190,7 +190,7 @@ class SmsYandex(WebDriver):
         print('yandex: {} номеров'.format(available_phones.Yandex.count))
         activation = GetNumber(
             service=SmsService().Yandex,
-            country=SmsTypes.Country.CA,
+            # country=SmsTypes.Country.CA,
             # operator=SmsTypes.Operator.Beeline
         ).request(wrapper)
 
@@ -203,25 +203,39 @@ class SmsYandex(WebDriver):
             confirm_sms_button = self.get_element(By.CSS_SELECTOR, '.Button2_view_pseudo')  # phone confirm click
             confirm_sms_button.click()
         except:
-            pass
+            time.sleep(1)
+            try:
+                confirm_sms_button = self.get_element(By.CSS_SELECTOR, '.Button2_view_pseudo')  # phone confirm click
+                confirm_sms_button.click()
+            except:
+                time.sleep(1)
+                try:
+                    confirm_registration_element = self.get_element(By.CSS_SELECTOR, 'button[type="submit"]')
+                    confirm_registration_element.click()
+                except:
+                    pass
         time.sleep(1)
-        try:
-            confirm_sms_button = self.get_element(By.CSS_SELECTOR, '.Button2_view_pseudo')  # phone confirm click
-            confirm_sms_button.click()
-        except:
-            pass
-        time.sleep(1)
-        try:
-            confirm_registration_element = self.get_element(By.CSS_SELECTOR, 'button[type="submit"]')
-            confirm_registration_element.click()
-        except:
-            pass
+        self.wait_until_ajax_response()
+        time.sleep(3)
 
         # GET CODE HERE
+        try:
+            error_send = self.get_element(By.CSS_SELECTOR, '.error-message')
+        except:
+            error_send = None
+        
+        if error_send and "limit" in error_send.text:
+            print("Can't send SMS")
+            time.sleep(5)
+            raise Exception("can't send SMS")
+        if error_send:
+            print("SMS send message", error_send.text)
+
+        print("SMS SENT")
 
         activation.was_sent()
         # .request(wrapper)
-        code = activation.wait_code(wrapper=wrapper)
+        code = activation.wait_code(wrapper=wrapper, timeout=60)
 
         phone_code_element = self.get_element(By.ID, 'phoneCode')
         self.send_slow_key(phone_code_element, code)
