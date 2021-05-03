@@ -10,6 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from tbselenium.tbdriver import TorBrowserDriver
 import time
 import os
+import os.path
 import inspect
 
 import tbselenium.common as cm
@@ -95,7 +96,7 @@ class TorDriver(WebDriver):
 
         # The location of the Tor Browser bundle
         # Update this to match the location on your computer
-        tbb_dir = "/home/grandrew/Downloads/tor-browser_en-US/"
+        tbb_dir = os.path.expanduser("~/Downloads/tor-browser_en-US/")
 
         # Disable Tor Launcher to prevent it connecting the Tor Browser to Tor directly
         os.environ['TOR_SKIP_LAUNCH'] = '1'
@@ -164,7 +165,7 @@ def set_proxy(driver, http_addr='', http_port=0, ssl_addr='', ssl_port=0, socks_
 
 class TorDriver2(WebDriver):
     def __init__(self, opts):
-        tbb_dir = "/home/grandrew/Downloads/tor-browser_en-US/"
+        tbb_dir = os.path.expanduser("~/Downloads/tor-browser_en-US/")
         os.environ['TOR_SKIP_LAUNCH'] = '1'
         os.environ['TOR_TRANSPROXY'] = '1'
         tb_binary = os.path.join(tbb_dir, 'Browser/firefox')
@@ -210,7 +211,7 @@ class TorDriver2(WebDriver):
 
 class TorDriver3(WebDriver):
     def __init__(self, opts):
-        tbb_dir = "/home/grandrew/Downloads/tor-browser_en-US/"
+        tbb_dir = os.path.expanduser("~/Downloads/tor-browser_en-US/")
         os.environ['TOR_SKIP_LAUNCH'] = '1'
         os.environ['TOR_TRANSPROXY'] = '1'
         tb_binary = os.path.join(tbb_dir, 'Browser/firefox')
