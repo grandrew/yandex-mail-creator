@@ -4,3 +4,4 @@ chromedriver
 yandexaccounts.txt
 .vscode
 *.pyc
+geckodriver
